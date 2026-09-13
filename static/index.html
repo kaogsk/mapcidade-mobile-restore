@@ -1,0 +1,333 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Backup Mobile — Restauração</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      font-family: 'Segoe UI', system-ui, sans-serif;
+      background: #f0f2f5;
+      color: #222;
+      min-height: 100vh;
+      display: flex;
+      align-items: flex-start;
+      justify-content: center;
+      padding: 32px 16px;
+    }
+
+    .container { width: 100%; max-width: 720px; }
+
+    h1 {
+      font-size: 1.4rem;
+      font-weight: 600;
+      color: #1a1a2e;
+      margin-bottom: 24px;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+    h1 span.badge {
+      font-size: 0.7rem;
+      font-weight: 500;
+      background: #3b82f6;
+      color: #fff;
+      padding: 2px 8px;
+      border-radius: 20px;
+      text-transform: uppercase;
+      letter-spacing: .05em;
+    }
+
+    .card {
+      background: #fff;
+      border-radius: 12px;
+      padding: 24px;
+      box-shadow: 0 1px 3px rgba(0,0,0,.08), 0 4px 16px rgba(0,0,0,.04);
+      margin-bottom: 20px;
+    }
+
+    .card-title {
+      font-size: .8rem;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: .08em;
+      color: #6b7280;
+      margin-bottom: 16px;
+    }
+
+    .field { margin-bottom: 14px; }
+    .field:last-child { margin-bottom: 0; }
+
+    label {
+      display: block;
+      font-size: .82rem;
+      font-weight: 500;
+      color: #374151;
+      margin-bottom: 5px;
+    }
+
+    select, input[type="text"], input[type="password"] {
+      width: 100%;
+      padding: 9px 12px;
+      border: 1px solid #d1d5db;
+      border-radius: 7px;
+      font-size: .9rem;
+      color: #111;
+      background: #fafafa;
+      outline: none;
+      transition: border-color .15s, box-shadow .15s;
+      appearance: none;
+    }
+    select {
+      background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%236b7280' stroke-width='2'%3E%3Cpolyline points='6 9 12 15 18 9'/%3E%3C/svg%3E");
+      background-repeat: no-repeat;
+      background-position: right 12px center;
+      padding-right: 36px;
+    }
+    select:focus, input:focus {
+      border-color: #3b82f6;
+      box-shadow: 0 0 0 3px rgba(59,130,246,.12);
+      background: #fff;
+    }
+
+    .row-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+
+    .btn {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      padding: 10px 22px;
+      border: none;
+      border-radius: 8px;
+      font-size: .9rem;
+      font-weight: 600;
+      cursor: pointer;
+      transition: background .15s, opacity .15s;
+    }
+    .btn-primary { background: #3b82f6; color: #fff; }
+    .btn-primary:hover { background: #2563eb; }
+    .btn-primary:disabled { opacity: .5; cursor: not-allowed; }
+
+    .log-box {
+      background: #0f172a;
+      border-radius: 10px;
+      padding: 20px;
+      font-family: 'Cascadia Code', 'Fira Code', 'Consolas', monospace;
+      font-size: .8rem;
+      line-height: 1.6;
+      color: #94a3b8;
+      min-height: 160px;
+      max-height: 480px;
+      overflow-y: auto;
+      white-space: pre-wrap;
+      word-break: break-word;
+    }
+    .log-box .ok   { color: #4ade80; }
+    .log-box .err  { color: #f87171; }
+    .log-box .warn { color: #fbbf24; }
+    .log-box .info { color: #60a5fa; }
+    .log-box .sep  { color: #475569; }
+
+    .spinner {
+      width: 14px; height: 14px;
+      border: 2px solid rgba(255,255,255,.4);
+      border-top-color: #fff;
+      border-radius: 50%;
+      animation: spin .6s linear infinite;
+      display: none;
+    }
+    .spinner.active { display: inline-block; }
+    @keyframes spin { to { transform: rotate(360deg); } }
+
+    .status-bar {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      margin-bottom: 10px;
+      font-size: .8rem;
+      color: #6b7280;
+    }
+    .status-dot {
+      width: 8px; height: 8px;
+      border-radius: 50%;
+      background: #d1d5db;
+    }
+    .status-dot.ready  { background: #4ade80; }
+    .status-dot.busy   { background: #fbbf24; animation: pulse 1s infinite; }
+    .status-dot.error  { background: #f87171; }
+    @keyframes pulse { 0%,100%{opacity:1} 50%{opacity:.4} }
+  </style>
+</head>
+<body>
+<div class="container">
+  <h1>
+    Backup Mobile
+    <span class="badge">Restauração</span>
+  </h1>
+
+  <!-- Config card -->
+  <div class="card">
+    <div class="card-title">Configuração</div>
+
+    <div class="field">
+      <label>Município (banco de dados)</label>
+      <select id="selMun">
+        <option value="">Carregando...</option>
+      </select>
+    </div>
+
+    <div class="field">
+      <label>Pasta do backup</label>
+      <select id="selBackup">
+        <option value="">Carregando...</option>
+      </select>
+    </div>
+
+    <div class="row-2">
+      <div class="field">
+        <label>Usuário SSH</label>
+        <input type="text" id="sshUser" placeholder="usuario.ldap" autocomplete="username">
+      </div>
+      <div class="field">
+        <label>Senha SSH</label>
+        <input type="password" id="sshPass" placeholder="senha" autocomplete="current-password">
+      </div>
+    </div>
+  </div>
+
+  <!-- Action -->
+  <div class="card">
+    <div style="display:flex; align-items:center; justify-content:space-between; flex-wrap:wrap; gap:12px;">
+      <button class="btn btn-primary" id="btnProcess" onclick="runProcess()">
+        <div class="spinner" id="spinner"></div>
+        Processar Backup
+      </button>
+      <div class="status-bar">
+        <div class="status-dot" id="statusDot"></div>
+        <span id="statusText">Aguardando</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- Log -->
+  <div class="card">
+    <div class="card-title">Log de execução</div>
+    <div class="log-box" id="logBox">Pronto para processar...</div>
+  </div>
+</div>
+
+<script>
+  let municipalities = [];
+
+  async function loadMunicipalities() {
+    try {
+      const res  = await fetch('/api/municipalities');
+      const data = await res.json();
+      municipalities = data;
+      const sel = document.getElementById('selMun');
+      sel.innerHTML = '<option value="">— selecione o município —</option>';
+      data.forEach(d => {
+        const opt = document.createElement('option');
+        opt.value = d.conn_str;
+        opt.textContent = d.name;
+        sel.appendChild(opt);
+      });
+    } catch (e) {
+      document.getElementById('selMun').innerHTML = '<option>Erro ao carregar</option>';
+    }
+  }
+
+  async function loadBackups() {
+    try {
+      const res  = await fetch('/api/backups');
+      const data = await res.json();
+      const sel  = document.getElementById('selBackup');
+      sel.innerHTML = '<option value="">— selecione o backup —</option>';
+      data.forEach(d => {
+        const opt = document.createElement('option');
+        opt.value = d.path;
+        opt.textContent = d.name;
+        sel.appendChild(opt);
+      });
+    } catch (e) {
+      document.getElementById('selBackup').innerHTML = '<option>Erro ao carregar</option>';
+    }
+  }
+
+  function setStatus(state, text) {
+    const dot  = document.getElementById('statusDot');
+    const span = document.getElementById('statusText');
+    dot.className  = `status-dot ${state}`;
+    span.textContent = text;
+  }
+
+  function renderLogs(logs) {
+    const box = document.getElementById('logBox');
+    box.innerHTML = logs.map(line => {
+      const l = line.trim();
+      if (!l) return '<span class="sep">─</span>';
+      if (l.startsWith('ERROR'))  return `<span class="err">${esc(line)}</span>`;
+      if (l.startsWith('SKIP'))   return `<span class="warn">${esc(line)}</span>`;
+      if (l.startsWith('WARN'))   return `<span class="warn">${esc(line)}</span>`;
+      if (l.startsWith('COMMIT') || l.includes('gid=') || l.includes('doc_id=') || l.startsWith('INSERT'))
+        return `<span class="ok">${esc(line)}</span>`;
+      if (l.startsWith('---') || l.startsWith('Task:') || l.startsWith('Connecting'))
+        return `<span class="info">${esc(line)}</span>`;
+      return `<span>${esc(line)}</span>`;
+    }).join('\n');
+    box.scrollTop = box.scrollHeight;
+  }
+
+  function esc(s) {
+    return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+  }
+
+  async function runProcess() {
+    const conn_str     = document.getElementById('selMun').value;
+    const backup_path  = document.getElementById('selBackup').value;
+    const ssh_user     = document.getElementById('sshUser').value.trim();
+    const ssh_password = document.getElementById('sshPass').value;
+
+    if (!conn_str)    return alert('Selecione o município.');
+    if (!backup_path) return alert('Selecione a pasta de backup.');
+    if (!ssh_user)    return alert('Informe o usuário SSH.');
+
+    const btn     = document.getElementById('btnProcess');
+    const spinner = document.getElementById('spinner');
+    btn.disabled  = true;
+    spinner.classList.add('active');
+    setStatus('busy', 'Processando...');
+    document.getElementById('logBox').textContent = 'Aguarde...';
+
+    try {
+      const res  = await fetch('/api/process', {
+        method:  'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body:    JSON.stringify({ conn_str, backup_path, ssh_user, ssh_password }),
+      });
+      const data = await res.json();
+
+      if (data.error) {
+        renderLogs([`ERROR: ${data.error}`]);
+        setStatus('error', 'Erro');
+      } else {
+        renderLogs(data.logs);
+        const hasError = data.logs.some(l => l.includes('ERROR'));
+        setStatus(hasError ? 'error' : 'ready', hasError ? 'Concluído com erros' : 'Concluído');
+      }
+    } catch (e) {
+      renderLogs([`ERROR: ${e.message}`]);
+      setStatus('error', 'Erro de conexão');
+    } finally {
+      btn.disabled = false;
+      spinner.classList.remove('active');
+    }
+  }
+
+  loadMunicipalities();
+  loadBackups();
+</script>
+</body>
+</html>

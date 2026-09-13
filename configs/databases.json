@@ -1,0 +1,9 @@
+{
+  "mcpServers": {
+    "rivermeadow": {
+      "command": "npx",
+      "args": ["-y", "example-postgres-tool", "postgresql://demo:demo@203.0.113.10:5432/rivermeadow"],
+      "disabled": false
+    }
+  }
+}
