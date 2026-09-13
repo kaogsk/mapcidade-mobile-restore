@@ -1,8 +1,8 @@
 import { existsSync, readFileSync } from "node:fs";
 
 /**
- * Porte de load_mcp_config / list_databases / _build_psycopg2_params.
- * Lê o mcp_config.json central e extrai as conexões postgresql:// dos args.
+ * Porte de load_db_config / list_databases / _build_psycopg2_params.
+ * Lê o db-config.json central e extrai as conexões postgresql:// dos args.
  */
 
 export interface McpServerCfg {
@@ -27,7 +27,7 @@ export interface PgParams {
 
 export function loadMcpConfig(configPath: string): { mcpServers?: Record<string, McpServerCfg> } {
   if (!existsSync(configPath)) {
-    throw new Error(`mcp_config.json não encontrado: ${configPath}`);
+    throw new Error(`db-config.json não encontrado: ${configPath}`);
   }
   return JSON.parse(readFileSync(configPath, "utf-8")) as {
     mcpServers?: Record<string, McpServerCfg>;
